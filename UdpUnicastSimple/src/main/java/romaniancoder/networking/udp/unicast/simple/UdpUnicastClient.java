@@ -1,18 +1,26 @@
 package romaniancoder.networking.udp.unicast.simple;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.SocketException;
+import java.net.*;
 
 /**
  * Created by dan.geabunea on 6/3/2016.
  */
 public class UdpUnicastClient implements Runnable {
     private final int port;
+    private InetAddress address;
+    private OutputPacket<String> outputPacket;
 
-    public UdpUnicastClient(int port) {
+    public UdpUnicastClient(String add, int port) {
         this.port = port;
+        {
+            try {
+                this.address = InetAddress.getByName(add);
+                this.outputPacket = new OutputPacket(address.toString(), port);
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
@@ -21,7 +29,7 @@ public class UdpUnicastClient implements Runnable {
          * Bind the client socket to the port on which you expect to
          * read incoming messages
          */
-        try (DatagramSocket clientSocket = new DatagramSocket(port)) {
+        try (DatagramSocket clientSocket = new DatagramSocket(port, address)) {
             /**
              * Create a byte array buffer to store incoming data. If the message length
              * exceeds the length of your buffer, then the message will be truncated. To avoid this,
@@ -32,7 +40,7 @@ public class UdpUnicastClient implements Runnable {
             byte[] buffer = new byte[65507];
 
             // Set a timeout of 3000 ms for the client.
-            clientSocket.setSoTimeout(3000);
+//            clientSocket.setSoTimeout(3000);
             while (true) {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer, 0, buffer.length);
 
@@ -42,8 +50,14 @@ public class UdpUnicastClient implements Runnable {
                  */
                 clientSocket.receive(datagramPacket);
 
+
                 String receivedMessage = new String(datagramPacket.getData());
-                System.out.println(receivedMessage);
+                outputPacket.setContent(receivedMessage);
+//                System.out.println(receivedMessage);
+                System.out.print("Node IP: " + outputPacket.ip + ", ");
+                System.out.print("Port: " + outputPacket.port + ", ");
+                System.out.println("Content: " + outputPacket.content + ".");
+
             }
         } catch (SocketException e) {
             e.printStackTrace();
